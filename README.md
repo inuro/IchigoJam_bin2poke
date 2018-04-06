@@ -153,6 +153,12 @@ python bin2poke.py -a 900 infile.bin outfile.bas
 python bin2poke.py -a 0 -o bin -c 1 infile.bin outfile.bas
 ```
 
+### -b &lt;base16モード&gt;
+* BASE16形式で出力します（デコーダ付き）
+* BASE16: http://tagiyasoft.blog.jp/archives/4492515.html
+* 必ずプログラムファイルの先頭に置いてください（デコーダがオフセット初期値を1行目にしているため）
+
+
 ## 注意点は?
 
 * マシン語格納領域のアドレスをチェックしていない
