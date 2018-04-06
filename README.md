@@ -153,10 +153,12 @@ python bin2poke.py -a 900 infile.bin outfile.bas
 python bin2poke.py -a 0 -o bin -c 1 infile.bin outfile.bas
 ```
 
-### -b &lt;base16モード&gt;
-* BASE16形式で出力します（デコーダ付き）
+### -b
+* **BASE16** 形式で出力します（デコーダ付き）
 * BASE16: http://tagiyasoft.blog.jp/archives/4492515.html
 * 必ずプログラムファイルの先頭に置いてください（デコーダがオフセット初期値を1行目にしているため）
+* -sの初期行番号、 -dの増分 -aのPOKE先アドレス、-cの1行のデータ量はそのまま機能します
+** -c 96 -s 1 -d 1がおすすめ
 
 
 ## 注意点は?
