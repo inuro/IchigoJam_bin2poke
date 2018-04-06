@@ -204,11 +204,13 @@ def main():
     poke_address_base = poke_address
     pos_in_line = 0
     line_count = 0
+    total_bytes = 0
     while True:
         byte = in_file.read(1)
         if byte == '':
             break
         else:
+            total_bytes += 1
             if pos_in_line == 0:
                 if array_mode:
                     out_file.write('%d let[%d]' % (line_no, poke_address)),
@@ -243,7 +245,10 @@ def main():
         out_file.write('\n')
     if base16_mode:
         line_no += line_step
-        out_file.write('%d O=#C04:D=0:FORJ=0TO%d:N=PEEK(O-2):FORI=0TON/2-2:POKE#%03x+D,(PEEK(O+i*2)-64)<<4+PEEK(O+1+i*2)-64:D=D+1:NEXT:O=O+N+4:NEXT' % (line_no, line_count, poke_address_base)),
+        if line_count == 1:
+            out_file.write('%d O=#C04:FORI=0TO%d:POKE#%03x+I,(PEEK(O+I*2)-64)<<4+PEEK(O+1+I*2)-64:NEXT' % (line_no, total_bytes, poke_address_base)),
+        else
+            out_file.write('%d O=#C04:D=0:FORJ=0TO%d:N=PEEK(O-2):FORI=0TON/2-2:POKE#%03x+D,(PEEK(O+i*2)-64)<<4+PEEK(O+1+i*2)-64:D=D+1:NEXT:O=O+N+4:NEXT' % (line_no, line_count, poke_address_base)),
         out_file.write('\n')
     out_file.close()
                     
