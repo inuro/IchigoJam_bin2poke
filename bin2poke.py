@@ -31,6 +31,12 @@ def write_u2(file, format, data):
         file.write(',`{0:0>16b}'.format(data)),
     else:
         file.write(',#{0:0>4x}'.format(data)),
+
+def write_base16(file, format, data):
+    b1 = 64+(data>>4)
+    b2 = 64+(data & 0xf)
+    file.write(chr(b1)),
+    file.write(chr(b2)),
     
 def get_u3_u8(inst):
     u3 = (inst >> 8) & 0x0007
@@ -157,10 +163,11 @@ def main():
     output_format = 16
     array_mode = False
     disasm_mode = False
+    base16_mode = False
     support_formats = {'hex':16, 'dec':10, 'bin':2}
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'a:s:d:o:c:')
+        opts, args = getopt.getopt(sys.argv[1:], 'a:s:d:o:c:b')
     except getopt.GetoptError, err:
         print(str(err))
         sys.exit(2)
@@ -183,6 +190,8 @@ def main():
                 sys.exit(1)
         elif o == '-c':
             data_count = int(a)
+        elif o == '-b':
+            base16_mode = True
         else:
             print('error: unhandled option')
             sys.exit(1)
@@ -192,7 +201,9 @@ def main():
     in_file, out_file = open_files(args)
     out_file.softspace = False
 
+    poke_address_base = poke_address
     pos_in_line = 0
+    line_count = 0
     while True:
         byte = in_file.read(1)
         if byte == '':
@@ -201,6 +212,8 @@ def main():
             if pos_in_line == 0:
                 if array_mode:
                     out_file.write('%d let[%d]' % (line_no, poke_address)),
+                elif base16_mode:
+                    out_file.write('%d \'' % (line_no))
                 else:
                     out_file.write('%d poke#%03x' % (line_no, poke_address)),
                 poke_address += data_count
@@ -215,17 +228,24 @@ def main():
                     out_file.write(':\'' + disasm_code),
                 if byte_h == '':
                     break
+            elif base16_mode:
+                write_base16(out_file, output_format, ord(byte))
             else:
                 write_u1(out_file, output_format, ord(byte))
             pos_in_line += 1
             if pos_in_line >= data_count:
                 pos_in_line = 0
                 line_no += line_step
+                line_count += 1
                 out_file.write('\n')
     in_file.close()
     if pos_in_line != 0:
         out_file.write('\n')
-        out_file.close()
+    if base16_mode:
+        line_no += line_step
+        out_file.write('%d O=#C04:D=0:FORJ=0TO%d:N=PEEK(O-2):FORI=0TON/2-2:POKE#%03x+D,(PEEK(O+i*2)-64)<<4+PEEK(O+1+i*2)-64:D=D+1:NEXT:O=O+N+4:NEXT' % (line_no, line_count, poke_address_base)),
+        out_file.write('\n')
+    out_file.close()
                     
 
 if __name__ == '__main__':
