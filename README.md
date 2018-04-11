@@ -153,6 +153,23 @@ python bin2poke.py -a 900 infile.bin outfile.bas
 python bin2poke.py -a 0 -o bin -c 1 infile.bin outfile.bas
 ```
 
+### -b
+* **BASE16** 形式で出力します（デコーダ付き）
+  * BASE16: http://tagiyasoft.blog.jp/archives/4492515.html
+* 必ずプログラムファイルの先頭に置いてください（デコーダがオフセット初期値を1行目にしているため）
+* -sの初期行番号、 -dの増分 -aのPOKE先アドレス、-cの1行のデータ量はそのまま機能します
+  * -c 96 -s 1 -d 1がおすすめ
+
+```
+$ python bin2poke.py -b -c 96 -a 0x800 -s 1 -d 1 test.bin test.txt
+$ cat test.txt
+1 'O@KEAKDLHOK@@@IDAJDLEB@@@AIDAJDLILDF@BIDAIDL@CBE@CIDAIDL@DIDAIDL@EIDAIDL@FID@GIDAHDL@HID@IIDAHDL@JID@KIDAGDL@LID@MIDFLDFAFEO@@BDCG@@JBALAGDACB@@BBDABJD@ADIKEBAHEB@AIJAHI@BCBOD@ABAHAK@AMBAIMBAH
+2 'FCDF@DCDACG@A@BLNJMA@OK@O@KML@DFIFAEIFDEFJEBEFDAIJAEEFDHFJABBFDEIBAEFJDEFJIBEF@DFJAEIFHEBFEIEF@AIMAEJKHIFJEIFJEI@K@@@GKE@B@@@EDI@EDHEIEFAHEF@@ICOHBCOOOGJIOO@@B@@NKML@DFOL@H@@@@OJ@H@@@@
+3 O=#C04:D=0:FORJ=0TO1:N=PEEK(O-2):FORI=0TON/2-2:POKE#800+D,(PEEK(O+i*2)-64)<<4+PEEK(O+1+i*2)-64:D=D+1:NEXT:O=O+N+4:NEXT
+```
+
+
+
 ## 注意点は?
 
 * マシン語格納領域のアドレスをチェックしていない
