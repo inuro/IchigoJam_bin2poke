@@ -32,11 +32,55 @@ def write_u2(file, format, data):
     else:
         file.write(',#{0:0>4x}'.format(data)),
 
-def write_base16(file, format, data):
+def write_base16(file, data):
     b1 = 64+(data>>4)
     b2 = 64+(data & 0xf)
     file.write(chr(b1)),
     file.write(chr(b2)),
+
+class Base128:
+    __index = 0
+    __byte_count = 0
+    __reminder = null
+    
+    //encoding (using 0x30~0x7A and 0xAB~0xDF)
+    def __encode(self, val)
+        code = val + 0x30 * ((val > 74) + 1)
+        return code
+    
+    //actual writing method
+    def __write(self, file, val):
+        code = self.__encode(val)
+        file.write(chr(code)),
+        //self.__count = self.__count + 1
+        
+    //public interface
+    def write_base128(self, file, data):
+        //divide & combine to align 7bit
+        val = data >> (self.__index + 1) 
+        
+        //write val 
+        //if on the 7bit border write reminder
+        //else combine devided val with reminder
+        if self.__index == 0 && self.__reminder != null
+            self.__write(self.__reminder)
+        else
+            val = val & self.__reminder
+        self.__write(val)
+        
+        //calcurate reminder and update index
+        self.__reminder = data & (0x1 << self.__index)
+        self.__index = (self.__index + 1) % 7
+        self.__byte_count = self.__byte_count + 1
+        
+    //don't forget to write the last reminder at the end of the file
+    def reminded_char(self):
+        return chr(self.__encode(self.__reminder))
+    
+    //total bytes processed
+    def bytes(self):
+        return self.__byte_count
+    
     
 def get_u3_u8(inst):
     u3 = (inst >> 8) & 0x0007
@@ -164,10 +208,11 @@ def main():
     array_mode = False
     disasm_mode = False
     base16_mode = False
+    base128_mode = False
     support_formats = {'hex':16, 'dec':10, 'bin':2}
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'a:s:d:o:c:b')
+        opts, args = getopt.getopt(sys.argv[1:], 'a:s:d:o:c:b:x')
     except getopt.GetoptError, err:
         print(str(err))
         sys.exit(2)
@@ -192,6 +237,8 @@ def main():
             data_count = int(a)
         elif o == '-b':
             base16_mode = True
+        elif o == '-x':
+            base128_mode = True
         else:
             print('error: unhandled option')
             sys.exit(1)
@@ -205,6 +252,8 @@ def main():
     pos_in_line = 0
     line_count = 0
     total_bytes = 0
+    //base128 support
+    base128 = Base128()
     while True:
         byte = in_file.read(1)
         if byte == '':
@@ -215,6 +264,8 @@ def main():
                 if array_mode:
                     out_file.write('%d let[%d]' % (line_no, poke_address)),
                 elif base16_mode:
+                    out_file.write('%d \'' % (line_no))
+                elif base128_mode:
                     out_file.write('%d \'' % (line_no))
                 else:
                     out_file.write('%d poke#%03x' % (line_no, poke_address)),
@@ -231,7 +282,9 @@ def main():
                 if byte_h == '':
                     break
             elif base16_mode:
-                write_base16(out_file, output_format, ord(byte))
+                write_base16(out_file, ord(byte))
+            elif base128_mode:
+                base128.write_base128(out_file, ord(byte))
             else:
                 write_u1(out_file, output_format, ord(byte))
             pos_in_line += 1
@@ -241,8 +294,13 @@ def main():
                 line_count += 1
                 out_file.write('\n')
     in_file.close()
+
+    if base128_mode:
+        out_file.write(base128.reminded_char())
+
     if pos_in_line != 0:
         out_file.write('\n')
+    
     if base16_mode:
         line_no += line_step
         if line_count == 1:
@@ -250,6 +308,21 @@ def main():
         else:
             out_file.write('%d O=#C04:D=0:FORJ=0TO%d:N=PEEK(O-2):FORI=0TON/2-2:POKE#%03x+D,(PEEK(O+i*2)-64)<<4+PEEK(O+1+i*2)-64:D=D+1:NEXT:O=O+N+4:NEXT' % (line_no, line_count, poke_address_base)),
         out_file.write('\n')
+    
+    //2 O=#C04:I=0:K=0:M=9
+    //3 S=I%8:A=PEEK(O+I):A=A-(1+(A>#AA))*#30:IFSV=A>>(7-S)|C:POKE#800+K*2,V>>4,V&#FF:K=K+1
+    //4 C=(A&(#7F>>S))<<(S+1):I=I+1:IFK<MGOTO3
+    if base128_mode:
+        line_no += line_step
+        total_bytes = base128.bytes()
+        if line_count == 1:
+            out_file.write('%d O=#C04:I=0:K=0:M=9'% (line_no, total_bytes)),
+            out_file.write('%d S=I%8:A=PEEK(O+I):A=A-(1+(A>#AA))*#30:IFSV=A>>(7-S)|C:POKE#%03x+K*2,V>>4,V&#FF:K=K+1' % (line_no + 1, poke_address_base)),
+            out_file.write('%d C=(A&(#7F>>S))<<(S+1):I=I+1:IFK<MGOTO3' % (line_no + 2, line_no + 1)),
+        else:
+            out_file.write('%d O=#C04:D=0:FORJ=0TO%d:N=PEEK(O-2):FORI=0TON/2-2:POKE#%03x+D,(PEEK(O+i*2)-64)<<4+PEEK(O+1+i*2)-64:D=D+1:NEXT:O=O+N+4:NEXT' % (line_no, line_count, poke_address_base)),
+        out_file.write('\n')
+    
     out_file.close()
                     
 
