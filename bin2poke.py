@@ -43,41 +43,40 @@ class Base128:
     __byte_count = 0
     __reminder = null
     
-    //encoding (using 0x30~0x7A and 0xAB~0xDF)
+    #encoding (using 0x30~0x7A and 0xAB~0xDF)
     def __encode(self, val)
         code = val + 0x30 * ((val > 74) + 1)
         return code
     
-    //actual writing method
+    #actual writing method
     def __write(self, file, val):
         code = self.__encode(val)
         file.write(chr(code)),
-        //self.__count = self.__count + 1
         
-    //public interface
+    #public interface
     def write_base128(self, file, data):
-        //divide & combine to align 7bit
+        #divide & combine to align 7bit
         val = data >> (self.__index + 1) 
         
-        //write val 
-        //if on the 7bit border write reminder
-        //else combine devided val with reminder
+        #write val 
+        #if on the 7bit border write reminder
+        #else combine devided val with reminder
         if self.__index == 0 && self.__reminder != null
             self.__write(self.__reminder)
         else
             val = val & self.__reminder
         self.__write(val)
         
-        //calcurate reminder and update index
+        #calcurate reminder and update index
         self.__reminder = data & (0x1 << self.__index)
         self.__index = (self.__index + 1) % 7
         self.__byte_count = self.__byte_count + 1
         
-    //don't forget to write the last reminder at the end of the file
+    #don't forget to write the last reminder at the end of the file
     def reminded_char(self):
         return chr(self.__encode(self.__reminder))
     
-    //total bytes processed
+    #total bytes processed
     def bytes(self):
         return self.__byte_count
     
@@ -252,7 +251,7 @@ def main():
     pos_in_line = 0
     line_count = 0
     total_bytes = 0
-    //base128 support
+    #base128 support
     base128 = Base128()
     while True:
         byte = in_file.read(1)
@@ -309,9 +308,9 @@ def main():
             out_file.write('%d O=#C04:D=0:FORJ=0TO%d:N=PEEK(O-2):FORI=0TON/2-2:POKE#%03x+D,(PEEK(O+i*2)-64)<<4+PEEK(O+1+i*2)-64:D=D+1:NEXT:O=O+N+4:NEXT' % (line_no, line_count, poke_address_base)),
         out_file.write('\n')
     
-    //2 O=#C04:I=0:K=0:M=9
-    //3 S=I%8:A=PEEK(O+I):A=A-(1+(A>#AA))*#30:IFSV=A>>(7-S)|C:POKE#800+K*2,V>>4,V&#FF:K=K+1
-    //4 C=(A&(#7F>>S))<<(S+1):I=I+1:IFK<MGOTO3
+    #2 O=#C04:I=0:K=0:M=9
+    #3 S=I%8:A=PEEK(O+I):A=A-(1+(A>#AA))*#30:IFSV=A>>(7-S)|C:POKE#800+K*2,V>>4,V&#FF:K=K+1
+    #4 C=(A&(#7F>>S))<<(S+1):I=I+1:IFK<MGOTO3
     if base128_mode:
         line_no += line_step
         total_bytes = base128.bytes()
