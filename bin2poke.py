@@ -44,7 +44,7 @@ class Base128:
     __reminder = null
     
     #encoding (using 0x30~0x7A and 0xAB~0xDF)
-    def __encode(self, val)
+    def __encode(self, val):
         code = val + 0x30 * ((val > 74) + 1)
         return code
     
