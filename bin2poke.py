@@ -41,7 +41,7 @@ def write_base16(file, data):
 class Base128:
     __index = 0
     __byte_count = 0
-    __reminder = None
+    __reminder = 0
     
     #encoding (using 0x30~0x7A and 0xAB~0xDF)
     def __encode(self, val):
@@ -61,11 +61,11 @@ class Base128:
         #write val 
         #if on the 7bit border write reminder
         #else combine devided val with reminder
-        if (self.__index == 0) and (self.__reminder is not None):
-            self.__write(self.__reminder)
+        if self.__index == 0 and self.__byte_count > 0:
+            self.__write(file, self.__reminder)
         else:
-            val = val & self.__reminder
-        self.__write(val)
+            val = (val & self.__reminder)
+        self.__write(file, val)
         
         #calcurate reminder and update index
         self.__reminder = data & (0x1 << self.__index)
@@ -211,7 +211,7 @@ def main():
     support_formats = {'hex':16, 'dec':10, 'bin':2}
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'a:s:d:o:c:b:x')
+        opts, args = getopt.getopt(sys.argv[1:], 'a:s:d:o:c:bx')
     except getopt.GetoptError, err:
         print(str(err))
         sys.exit(2)
