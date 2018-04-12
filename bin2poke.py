@@ -44,37 +44,48 @@ class Base128:
     __reminder = 0
     
     #encoding (using 0x30~0x7A and 0xAB~0xDF)
+    #update: for Hankaku_Kana, using 0xFF6B~0xFF9F
     def __encode(self, val):
-        code = val + 0x30 * ((val > 74) + 1)
-        return code
+        if val < 75:
+            code = val + 0x30
+        else:
+            code = val + 0xFF20
+        return unichr(code).encode('utf-8')
     
     #actual writing method
     def __write(self, file, val):
-        code = self.__encode(val)
-        file.write(chr(code)),
+        str = self.__encode(val)
+        #print('-> %s %d %s' % (format(val,'07b'), val, str))
+        file.write(str),
         
     #public interface
     def write_base128(self, file, data):
+        #print ('{} {} '.format(self.__byte_count, self.__index)),
         #divide & combine to align 7bit
         val = data >> (self.__index + 1) 
-        
+        #print ('%s %s %s ' % ( format(data,'02x'),format(data,'08b'), format(val,'07b'))),
+
         #write val 
         #if on the 7bit border write reminder
         #else combine devided val with reminder
+        val_to_write = 0
         if self.__index == 0 and self.__byte_count > 0:
             self.__write(file, self.__reminder)
+            val_to_write = val
         else:
-            val = (val & self.__reminder)
-        self.__write(file, val)
+            val_to_write = (val | self.__reminder)
+        #print ('%s %s' % (format(self.__reminder,'07b'), format(val_to_write,'07b'))),
+        self.__write(file, val_to_write)
         
         #calcurate reminder and update index
-        self.__reminder = data & (0x1 << self.__index)
+        reminder_shift = 6 - self.__index
+        self.__reminder = (data & (0x7f >> reminder_shift)) << reminder_shift
         self.__index = (self.__index + 1) % 7
         self.__byte_count = self.__byte_count + 1
         
     #don't forget to write the last reminder at the end of the file
     def reminded_char(self):
-        return chr(self.__encode(self.__reminder))
+        return self.__encode(self.__reminder)
     
     #total bytes processed
     def bytes(self):
@@ -287,15 +298,17 @@ def main():
             else:
                 write_u1(out_file, output_format, ord(byte))
             pos_in_line += 1
+            #print ('pos_in_line:%d / %d' % (pos_in_line,data_count))
             if pos_in_line >= data_count:
                 pos_in_line = 0
                 line_no += line_step
-                line_count += 1
+                #print('line count incremented')
                 out_file.write('\n')
     in_file.close()
 
     if base128_mode:
         out_file.write(base128.reminded_char())
+        #print('last char:{}'.format(base128.reminded_char())) 
 
     if pos_in_line != 0:
         out_file.write('\n')
@@ -314,10 +327,10 @@ def main():
     if base128_mode:
         line_no += line_step
         total_bytes = base128.bytes()
-        if line_count == 1:
-            out_file.write('%d O=#C04:I=0:K=0:M=9'% (line_no, total_bytes)),
-            out_file.write('%d S=I%8:A=PEEK(O+I):A=A-(1+(A>#AA))*#30:IFSV=A>>(7-S)|C:POKE#%03x+K*2,V>>4,V&#FF:K=K+1' % (line_no + 1, poke_address_base)),
-            out_file.write('%d C=(A&(#7F>>S))<<(S+1):I=I+1:IFK<MGOTO3' % (line_no + 2, line_no + 1)),
+        if line_count == 0:
+            out_file.write('{0} O=#C04:I=0:K=0:M={1}\n'.format(line_no, total_bytes))
+            out_file.write('{0} S=I%8:A=PEEK(O+I):A=A-(1+(A>#AA))*#30:IFSV=A>>(7-S)|C:POKE#{1:x}+K,V:K=K+1\n'.format(line_no + 1, poke_address_base))
+            out_file.write('{0} C=(A&(#7F>>S))<<(S+1):I=I+1:IFK<MGOTO{1}\n'.format(line_no + 2, line_no + 1))
         else:
             out_file.write('%d O=#C04:D=0:FORJ=0TO%d:N=PEEK(O-2):FORI=0TON/2-2:POKE#%03x+D,(PEEK(O+i*2)-64)<<4+PEEK(O+1+i*2)-64:D=D+1:NEXT:O=O+N+4:NEXT' % (line_no, line_count, poke_address_base)),
         out_file.write('\n')
@@ -327,3 +340,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
