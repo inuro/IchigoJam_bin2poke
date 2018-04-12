@@ -41,7 +41,7 @@ def write_base16(file, data):
 class Base128:
     __index = 0
     __byte_count = 0
-    __reminder = null
+    __reminder = None
     
     #encoding (using 0x30~0x7A and 0xAB~0xDF)
     def __encode(self, val):
@@ -61,7 +61,7 @@ class Base128:
         #write val 
         #if on the 7bit border write reminder
         #else combine devided val with reminder
-        if self.__index == 0 and self.__reminder != null
+        if (self.__index == 0) and (self.__reminder is not None):
             self.__write(self.__reminder)
         else
             val = val & self.__reminder
