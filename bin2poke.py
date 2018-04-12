@@ -63,7 +63,7 @@ class Base128:
         #else combine devided val with reminder
         if (self.__index == 0) and (self.__reminder is not None):
             self.__write(self.__reminder)
-        else
+        else:
             val = val & self.__reminder
         self.__write(val)
         
