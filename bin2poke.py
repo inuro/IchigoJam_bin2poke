@@ -61,7 +61,7 @@ class Base128:
         #write val 
         #if on the 7bit border write reminder
         #else combine devided val with reminder
-        if self.__index == 0 && self.__reminder != null
+        if self.__index == 0 and self.__reminder != null
             self.__write(self.__reminder)
         else
             val = val & self.__reminder
